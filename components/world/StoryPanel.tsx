@@ -1,0 +1,38 @@
+"use client";
+
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ArrowLeft, ArrowUpRight, Check, ChevronRight, Copy, Download, ExternalLink, Fingerprint, Layers3, Mail, MapPin, Sparkles, X } from "lucide-react";
+import type { Dictionary, Project } from "@/lib/content";
+import { type PlaceId, type VerseCopy } from "@/lib/verse";
+import ProjectVisual from "@/components/ProjectVisual";
+
+export function WorldDialog({ title, eyebrow, onClose, closeLabel, children, className="" }: {title:string;eyebrow:string;onClose:()=>void;closeLabel:string;children:ReactNode;className?:string}) {
+  const ref=useRef<HTMLDialogElement>(null);
+  useEffect(()=> { const dialog=ref.current;if(dialog&&!dialog.open)dialog.showModal(); },[]);
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!dialog) return;
+    dialog.scrollTop = 0;
+    dialog.querySelector<HTMLElement>("#world-dialog-title")?.focus({ preventScroll: true });
+  }, [title]);
+  return <dialog className={`v-dialog ${className}`} ref={ref} aria-labelledby="world-dialog-title" onClose={onClose} onClick={event=>{if(event.target===event.currentTarget)onClose();}}><div className="v-dialog-shell"><header className="v-dialog-header"><span className="v-eyebrow">{eyebrow}</span><button aria-label={closeLabel} title={closeLabel} className="v-icon" onClick={onClose} autoFocus><X size={20}/></button></header><div className="v-dialog-heading"><h2 id="world-dialog-title" tabIndex={-1}>{title}</h2></div>{children}</div></dialog>;
+}
+
+function AiStory({d,c}:{d:Dictionary;c:VerseCopy}) {
+  return <><div className="v-ai-banner"><div><span className="v-eyebrow">{c.latest}</span><h3>{d.projects.items.find(p=>p.featured)?.title}</h3><p>{d.aiCaseStudy.description}</p></div><ProjectVisual id="dubicars-ai" featured/></div><div className="v-story-body"><p className="v-eyebrow">{c.flow}</p><div className="v-case-steps">{d.aiCaseStudy.steps.map(step=><article key={step.number}><span className="v-step-no">{step.number}</span><h4>{step.title}</h4><p>{step.description}</p></article>)}</div><h3>{c.capabilities}</h3><ul className="v-check-list">{d.aiCaseStudy.capabilities.map(item=><li key={item}><Check size={16}/><span>{item}</span></li>)}</ul><div className="v-insight"><Sparkles size={23}/><div><strong>{c.human}</strong><p>{d.aiCaseStudy.outcome}</p></div></div><div className="v-mini-projects">{d.projects.items.filter(p=>p.category==="ai"&&!p.featured).map(project=><article key={project.id}><h4>{project.title}</h4><p>{project.description}</p><div className="v-tags">{project.tags.slice(0,4).map(tag=><span key={tag}>{tag}</span>)}</div>{project.url&&<a href={project.url} target="_blank" rel="noopener noreferrer">{c.external}<ArrowUpRight size={14}/></a>}</article>)}</div></div></>;
+}
+
+export default function StoryPanel({place,d,c,onClose,onCopy,feedback}:{place:PlaceId;d:Dictionary;c:VerseCopy;onClose:()=>void;onCopy:()=>void;feedback:string}) {
+  const [project,setProject]=useState<Project|null>(null);
+  return <WorldDialog title={project?project.title:c[place]} eyebrow={c.story} closeLabel={c.close} onClose={onClose} className={`v-place-${place}`}>
+    <p className="v-place-description">{project?project.eyebrow:c.placeDescriptions[place]}</p>
+    {place==="about"&&<><div className="v-story-intro"><div className="v-person-card"><div className="v-person-monogram">HA<span/></div><strong>Haider Ali</strong><span>{d.hero.status}</span><span><MapPin size={12}/>{d.hero.location}</span></div><div><span className="v-eyebrow">{d.about.eyebrow.replace(/^\d+\s*\/\s*/,"")}</span><h3>{d.about.title}</h3>{d.about.paragraphs.map(p=><p key={p}>{p}</p>)}</div></div><div className="v-story-body"><div className="v-principles">{d.about.principles.map((p,i)=><article key={p.title}><span>0{i+1}</span><h4>{p.title}</h4><p>{p.description}</p></article>)}</div><div className="v-education"><Layers3 size={22}/><div><strong>{d.about.education.degree}</strong><p>{d.about.education.institution}</p><span>{d.about.education.period}</span></div><a className="v-link" href="/Haider_Ali_Resume.pdf" download>{c.resume}<Download size={15}/></a></div></div></>}
+    {place==="projects"&&!project&&<div className="v-gallery">{d.projects.items.map(p=><button key={p.id} onClick={()=>setProject(p)} className="v-project"><ProjectVisual id={p.id} featured={p.featured}/><div><span className="v-eyebrow">{p.eyebrow}</span><h3>{p.title}<ArrowUpRight size={20}/></h3><p>{p.description}</p><div className="v-tags">{p.tags.slice(0,3).map(tag=><span key={tag}>{tag}</span>)}</div></div></button>)}</div>}
+    {place==="projects"&&project&&<><button className="v-project-back" onClick={()=>setProject(null)}><ArrowLeft size={16}/>{c.backProjects}</button>{project.featured?<AiStory d={d} c={c}/>:<div className="v-story-body"><div className="v-project-detail-art"><ProjectVisual id={project.id}/></div><p className="v-project-summary">{project.description}</p><h3>{c.tags}</h3><div className="v-tags">{project.tags.map(tag=><span key={tag}>{tag}</span>)}</div>{project.url&&<a className="v-button v-button-dark" href={project.url} target="_blank" rel="noopener noreferrer">{c.external}<ExternalLink size={15}/></a>}</div>}</>}
+    {place==="ai"&&<AiStory d={d} c={c}/>}
+    {place==="experience"&&<div className="v-story-body"><div className="v-timeline">{d.experience.items.map((item,i)=><article key={item.company}><span className="v-timeline-dot">0{i+1}</span><div className="v-timeline-meta"><span>{item.period}</span><span>{item.location}</span></div><h3>{item.company}</h3><h4>{item.role}</h4><p>{item.description}</p><ul>{item.highlights.map(h=><li key={h}>{h}</li>)}</ul></article>)}</div><p className="v-eyebrow">{c.impact}</p><div className="v-impact">{d.achievements.items.map(item=><article key={item.label}><strong>{item.value}</strong><h4>{item.label}</h4><p>{item.description}</p></article>)}</div></div>}
+    {place==="skills"&&<div className="v-story-body"><h3>{d.skills.title}</h3><p className="v-body-intro">{d.skills.description}</p><div className="v-skill-grid">{d.skills.categories.map((group,i)=><article key={group.title}>{[<Layers3 key="a"/>,<Fingerprint key="b"/>,<Sparkles key="c"/>,<Layers3 key="d"/>][i%4]}<span className="v-eyebrow">0{i+1}</span><h4>{group.title}</h4><div className="v-tags">{group.items.map(item=><span key={item}>{item}</span>)}</div></article>)}</div><div className="v-insight"><Sparkles size={22}/><div><strong>{d.experiment.title}</strong><p>{d.experiment.description}</p></div></div></div>}
+    {place==="contact"&&<div className="v-story-body v-contact-story"><span className="v-contact-symbol"><Mail size={32} strokeWidth={1}/></span><h3>{d.contact.title}</h3><p>{d.contact.description}</p><a className="v-contact-email" href={`mailto:${d.contact.email}`}>{d.contact.email}<ArrowUpRight size={22}/></a><div className="v-contact-buttons"><a className="v-button v-button-dark" href={`mailto:${d.contact.email}`}>{c.email}<ArrowUpRight size={16}/></a><button className="v-button v-button-outline" onClick={onCopy}>{c.copy}<Copy size={15}/></button></div><p className="v-copy-feedback" role="status">{feedback}</p><div className="v-contact-social">{d.contact.links.map(link=><a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer">{link.label}<ExternalLink size={14}/></a>)}</div><span className="v-contact-location"><MapPin size={13}/>{d.contact.location}</span></div>}
+    <footer className="v-dialog-footer"><span><span className="v-status-dot"/>{c.pause}</span><button className="v-link" onClick={onClose}>{c.continue}<ChevronRight size={16}/></button></footer>
+  </WorldDialog>;
+}
